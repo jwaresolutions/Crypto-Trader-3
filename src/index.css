@@ -1,0 +1,54 @@
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #0a0e27;
+  color: #ffffff;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+#root {
+  height: 100vh;
+}
+
+.trading-chart {
+  width: 100%;
+  height: 400px;
+}
+
+.price-positive {
+  color: #4caf50;
+}
+
+.price-negative {
+  color: #f44336;
+}
+
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: #1976d2 #1a1d3a;
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: #1a1d3a;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background-color: #1976d2;
+  border-radius: 3px;
+}
