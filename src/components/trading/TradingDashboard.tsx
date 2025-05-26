@@ -12,6 +12,7 @@ import ActiveOrders from './ActiveOrders';
 import PortfolioSummary from './PortfolioSummary';
 import Watchlist from './Watchlist';
 import PriceAlerts from './PriceAlerts';
+import ErrorBoundary from '../common/ErrorBoundary';
 
 const TradingDashboard: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
@@ -87,7 +88,9 @@ const TradingDashboard: React.FC = () => {
         {/* Fourth Row - Price Alerts */}
         <Grid item xs={12}>
           <Paper sx={{ p: 2, bgcolor: 'background.paper' }}>
-            <PriceAlerts />
+            <ErrorBoundary>
+              <PriceAlerts />
+            </ErrorBoundary>
           </Paper>
         </Grid>
       </Grid>

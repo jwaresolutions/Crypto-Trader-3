@@ -25,21 +25,19 @@ import {
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState, AppDispatch } from '../../store';
 import { logout } from '../../store/slices/authSlice';
+import { toggleDarkMode } from '../../store/slices/themeSlice';
 
 interface NavigationBarProps {
-  darkMode?: boolean;
-  onToggleDarkMode?: () => void;
   onMenuClick?: () => void;
 }
 
 const NavigationBar: React.FC<NavigationBarProps> = ({ 
-  darkMode = false, 
-  onToggleDarkMode, 
   onMenuClick 
 }) => {
   const dispatch = useDispatch<AppDispatch>();
   const { user, accountId } = useSelector((state: RootState) => state.auth);
   const { account } = useSelector((state: RootState) => state.portfolio);
+  const darkMode = useSelector((state: RootState) => state.theme.darkMode);
   
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
@@ -54,6 +52,10 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
   const handleLogout = () => {
     dispatch(logout());
     handleMenuClose();
+  };
+
+  const handleDarkModeToggle = () => {
+    dispatch(toggleDarkMode());
   };
 
   const getStatusColor = (status: string) => {
@@ -180,16 +182,14 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
           <Divider />
 
           {/* Menu Items */}
-          {onToggleDarkMode && (
-            <MenuItem onClick={onToggleDarkMode}>
-              <ListItemIcon>
-                {darkMode ? <LightMode fontSize="small" /> : <DarkMode fontSize="small" />}
-              </ListItemIcon>
-              <ListItemText>
-                {darkMode ? 'Light Mode' : 'Dark Mode'}
-              </ListItemText>
-            </MenuItem>
-          )}
+          <MenuItem onClick={handleDarkModeToggle}>
+            <ListItemIcon>
+              {darkMode ? <LightMode fontSize="small" /> : <DarkMode fontSize="small" />}
+            </ListItemIcon>
+            <ListItemText>
+              {darkMode ? 'Light Mode' : 'Dark Mode'}
+            </ListItemText>
+          </MenuItem>
 
           <MenuItem onClick={handleMenuClose}>
             <ListItemIcon>

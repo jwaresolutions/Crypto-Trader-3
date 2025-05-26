@@ -19,6 +19,7 @@ import {
   ListAlt as ListAltIcon,
   Settings as SettingsIcon,
 } from '@mui/icons-material';
+import { Link, useLocation } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState, AppDispatch } from '../../store';
 import { fetchPortfolio } from '../../store/slices/portfolioSlice';
@@ -32,6 +33,7 @@ const drawerWidth = 240;
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const dispatch = useDispatch<AppDispatch>();
+  const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const { orders } = useSelector((state: RootState) => state.orders);
   const { isAuthenticated } = useSelector((state: RootState) => state.auth);
@@ -62,20 +64,42 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         </Typography>
       </Toolbar>
       <List>
-        {menuItems.map((item) => (
-          <ListItem button key={item.text}>
-            <ListItemIcon sx={{ color: 'inherit' }}>
-              {item.text === 'Orders' ? (
-                <Badge badgeContent={orders.length} color="primary">
-                  {item.icon}
-                </Badge>
-              ) : (
-                item.icon
-              )}
-            </ListItemIcon>
-            <ListItemText primary={item.text} />
-          </ListItem>
-        ))}
+        {menuItems.map((item) => {
+          const isActive = location.pathname === item.path;
+          return (
+            <ListItem 
+              button 
+              key={item.text}
+              component={Link}
+              to={item.path}
+              sx={{
+                backgroundColor: isActive ? 'action.selected' : 'transparent',
+                '&:hover': {
+                  backgroundColor: 'action.hover',
+                },
+              }}
+            >
+              <ListItemIcon sx={{ color: isActive ? 'primary.main' : 'inherit' }}>
+                {item.text === 'Orders' ? (
+                  <Badge badgeContent={orders.length} color="primary">
+                    {item.icon}
+                  </Badge>
+                ) : (
+                  item.icon
+                )}
+              </ListItemIcon>
+              <ListItemText 
+                primary={item.text} 
+                sx={{ 
+                  '& .MuiListItemText-primary': {
+                    color: isActive ? 'primary.main' : 'inherit',
+                    fontWeight: isActive ? 'bold' : 'normal',
+                  }
+                }}
+              />
+            </ListItem>
+          );
+        })}
       </List>
     </Box>
   );

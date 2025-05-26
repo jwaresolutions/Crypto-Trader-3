@@ -75,53 +75,39 @@ const PortfolioSummary: React.FC = () => {
   const totalUnrealizedPL = account?.unrealizedPL || 0;
   const totalUnrealizedPLPercent = account?.unrealizedPLPercent || 0;
 
-  // Mock positions data with current market prices
-  const mockPositions: PortfolioPosition[] = [
-    {
-      symbol: 'BTCUSD',
-      name: 'Bitcoin',
-      quantity: 0.5,
-      avgCost: 45000,
-      currentPrice: symbols['BTCUSD']?.price || 47500,
-      marketValue: (symbols['BTCUSD']?.price || 47500) * 0.5,
-      unrealizedPL: ((symbols['BTCUSD']?.price || 47500) - 45000) * 0.5,
-      unrealizedPLPercent: (((symbols['BTCUSD']?.price || 47500) - 45000) / 45000) * 100,
-      allocation: 60
-    },
-    {
-      symbol: 'ETHUSD',
-      name: 'Ethereum',
-      quantity: 2.5,
-      avgCost: 3200,
-      currentPrice: symbols['ETHUSD']?.price || 3350,
-      marketValue: (symbols['ETHUSD']?.price || 3350) * 2.5,
-      unrealizedPL: ((symbols['ETHUSD']?.price || 3350) - 3200) * 2.5,
-      unrealizedPLPercent: (((symbols['ETHUSD']?.price || 3350) - 3200) / 3200) * 100,
-      allocation: 25
-    },
-    {
-      symbol: 'ADAUSD',
-      name: 'Cardano',
-      quantity: 1000,
-      avgCost: 0.45,
-      currentPrice: symbols['ADAUSD']?.price || 0.42,
-      marketValue: (symbols['ADAUSD']?.price || 0.42) * 1000,
-      unrealizedPL: ((symbols['ADAUSD']?.price || 0.42) - 0.45) * 1000,
-      unrealizedPLPercent: (((symbols['ADAUSD']?.price || 0.42) - 0.45) / 0.45) * 100,
-      allocation: 10
-    },
-    {
-      symbol: 'SOLUSD',
-      name: 'Solana',
-      quantity: 20,
-      avgCost: 95,
-      currentPrice: symbols['SOLUSD']?.price || 98,
-      marketValue: (symbols['SOLUSD']?.price || 98) * 20,
-      unrealizedPL: ((symbols['SOLUSD']?.price || 98) - 95) * 20,
-      unrealizedPLPercent: (((symbols['SOLUSD']?.price || 98) - 95) / 95) * 100,
-      allocation: 5
-    }
-  ];
+  // Transform positions to PortfolioPosition format
+  const portfolioPositions: PortfolioPosition[] = positions.map(position => {
+    const currentPrice = symbols?.[position.symbol]?.price || position.currentPrice;
+    const totalValue = portfolioValue || 1; // Prevent division by zero
+    
+    return {
+      symbol: position.symbol,
+      name: getSymbolName(position.symbol),
+      quantity: position.qty,
+      avgCost: position.avgEntryPrice,
+      currentPrice,
+      marketValue: position.marketValue,
+      unrealizedPL: position.unrealizedPL,
+      unrealizedPLPercent: position.unrealizedPLPercent,
+      allocation: (position.marketValue / totalValue) * 100
+    };
+  });
+
+  // Helper function to get readable names for symbols
+  function getSymbolName(symbol: string): string {
+    const symbolNames: Record<string, string> = {
+      'BTCUSD': 'Bitcoin',
+      'ETHUSD': 'Ethereum', 
+      'ADAUSD': 'Cardano',
+      'SOLUSD': 'Solana',
+      'DOTUSD': 'Polkadot',
+      'ALGOUSD': 'Algorand',
+      'AAPL': 'Apple Inc.',
+      'TSLA': 'Tesla Inc.',
+      'SPY': 'SPDR S&P 500 ETF'
+    };
+    return symbolNames[symbol] || symbol;
+  }
 
   const formatCurrency = (amount: number): string => {
     if (!showBalances) return '••••••';
@@ -269,7 +255,7 @@ const PortfolioSummary: React.FC = () => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {mockPositions.map((position) => (
+              {portfolioPositions.map((position) => (
                 <TableRow
                   key={position.symbol}
                   sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
@@ -341,7 +327,7 @@ const PortfolioSummary: React.FC = () => {
           </Table>
         </TableContainer>
 
-        {mockPositions.length === 0 && (
+        {portfolioPositions.length === 0 && (
           <Box sx={{ textAlign: 'center', py: 4 }}>
             <Typography variant="body2" color="text.secondary">
               No positions found. Start trading to see your portfolio here.

@@ -3,6 +3,7 @@ import authSlice from './slices/authSlice';
 import portfolioSlice from './slices/portfolioSlice';
 import marketDataSlice from './slices/marketDataSlice';
 import ordersSlice from './slices/ordersSlice';
+import themeSlice from './slices/themeSlice';
 
 export const store = configureStore({
   reducer: {
@@ -10,6 +11,7 @@ export const store = configureStore({
     portfolio: portfolioSlice,
     marketData: marketDataSlice,
     orders: ordersSlice,
+    theme: themeSlice,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
