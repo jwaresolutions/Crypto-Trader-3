@@ -171,22 +171,85 @@ class PolygonService {
     }
   }
 
+  // Test API connectivity with a simple endpoint
+  async testConnection(): Promise<{ success: boolean; message: string }> {
+    try {
+      // Try a simple stocks endpoint first (more likely to work with free tier)
+      const response = await withRetry(() =>
+        polygonAPI.get<{ status: string; results?: any[] }>('/v2/snapshot/locale/us/markets/stocks/tickers', {
+          params: { 'tickers.limit': 1 }
+        })
+      );
+      
+      return {
+        success: true,
+        message: `Connected successfully! API is working properly.`
+      };
+    } catch (error: any) {
+      console.error('Polygon API connection test failed:', error);
+      
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        return {
+          success: false,
+          message: 'Authentication failed - Check your API key'
+        };
+      }
+      
+      if (error.response?.status === 429) {
+        return {
+          success: false,
+          message: 'Rate limit exceeded - Too many requests'
+        };
+      }
+      
+      return {
+        success: false,
+        message: `Connection failed: ${error.response?.data?.error || error.message || 'Unknown error'}`
+      };
+    }
+  }
+
   // Get single ticker snapshot
   async getTickerSnapshot(symbol: string): Promise<MarketData | null> {
     try {
-      const cryptoSymbol = symbol.startsWith('X:') ? symbol : `X:${symbol}`;
+      // Try different symbol formats for crypto
+      let cryptoSymbol: string;
+      if (symbol.endsWith('USD')) {
+        // Convert BTCUSD to X:BTCUSD format
+        cryptoSymbol = symbol.startsWith('X:') ? symbol : `X:${symbol}`;
+      } else {
+        cryptoSymbol = symbol;
+      }
+      
+      console.log(`Fetching ticker snapshot for symbol: ${cryptoSymbol}`);
       
       const response = await withRetry(() =>
         polygonAPI.get<{ status: string; results: PolygonTicker }>(`/v2/snapshot/locale/global/markets/crypto/tickers/${cryptoSymbol}`)
       );
 
+      console.log('Polygon API response:', response);
+
       if (response.results) {
         return this.transformTicker(response.results);
       }
+      
+      // If no results, try alternative endpoint or format
+      console.warn(`No results for ${cryptoSymbol}, trying alternative approach`);
       return null;
-    } catch (error) {
-      console.warn(`Failed to fetch ticker snapshot for ${symbol}`);
-      return null;
+    } catch (error: any) {
+      console.error(`Failed to fetch ticker snapshot for ${symbol}:`, error);
+      
+      // Check if it's an API key issue
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        throw new Error('Invalid API key or insufficient permissions');
+      }
+      
+      // Check if it's a rate limit issue
+      if (error.response?.status === 429) {
+        throw new Error('API rate limit exceeded');
+      }
+      
+      throw new Error(`Polygon API error: ${error.response?.data?.error || error.message || 'Unknown error'}`);
     }
   }
 
