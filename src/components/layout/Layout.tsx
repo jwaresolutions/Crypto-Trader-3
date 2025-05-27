@@ -21,6 +21,7 @@ import {
   ArrowForward as ArrowForwardIcon,
   Psychology as PsychologyIcon,
   Build as BuildIcon,
+  Timeline as TimelineIcon,
 } from '@mui/icons-material';
 import { Link, useLocation } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
@@ -58,6 +59,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     { text: 'Orders', icon: <ListAltIcon />, path: '/orders' },
     { text: 'Strategy Config', icon: <BuildIcon />, path: '/strategy-configuration' },
     { text: 'Strategy Management', icon: <PsychologyIcon />, path: '/strategy-management' },
+    { text: 'Backtesting', icon: <TimelineIcon />, path: '/backtesting' },
     { text: 'Settings', icon: <SettingsIcon />, path: '/settings' },
   ];
 
