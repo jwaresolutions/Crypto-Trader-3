@@ -164,6 +164,42 @@ class StrategyService {
     clearInterval(intervalId);
     console.log('Strategy monitoring stopped');
   }
+
+  /**
+   * Generate trading signals for a strategy
+   */
+  async generateSignals(strategyId: string, marketData: any): Promise<any[]> {
+    try {
+      // Mock signal generation based on strategy type
+      const signals = [];
+      
+      // Simulate signal generation based on market data
+      const symbols = Object.keys(marketData);
+      
+      for (const symbol of symbols) {
+        const price = marketData[symbol]?.price || 0;
+        
+        // Generate random signal for demo purposes
+        const signal = {
+          symbol,
+          strategyId,
+          signal: Math.random() > 0.7 ? (Math.random() > 0.5 ? 'buy' : 'sell') : 'none',
+          confidence: Math.random(),
+          price,
+          timestamp: new Date()
+        };
+        
+        if (signal.signal !== 'none') {
+          signals.push(signal);
+        }
+      }
+      
+      return signals;
+    } catch (error) {
+      console.error('Error generating signals:', error);
+      return [];
+    }
+  }
 }
 
 export const strategyService = new StrategyService();

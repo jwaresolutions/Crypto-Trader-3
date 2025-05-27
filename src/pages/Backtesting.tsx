@@ -159,9 +159,7 @@ const Backtesting: React.FC = () => {
       
       let historicalData = await backtestingService.getHistoricalData(
         selectedSymbol,
-        '1d',
-        startDate,
-        endDate
+        180 // 6 months in days
       );
       
       // If no data in database, generate mock data
@@ -171,9 +169,9 @@ const Backtesting: React.FC = () => {
         
         // Store mock data in database for future use
         for (const dataPoint of historicalData) {
-          await dbService.storeMarketData({
+          await dbService.saveMarketData({
             symbol: selectedSymbol,
-            timestamp: dataPoint.timestamp,
+            timestamp: dataPoint.timestamp ? new Date(dataPoint.timestamp) : new Date(dataPoint.date),
             open: dataPoint.open,
             high: dataPoint.high,
             low: dataPoint.low,

@@ -1,6 +1,20 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import DatabaseService from '../../services/databaseService';
 
+// Define User interface with preferences
+interface User {
+  id: string;
+  email: string;
+  username: string;
+  password: string;
+  firstName: string | null;
+  lastName: string | null;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  preferences?: Record<string, any>;
+}
+
 interface ThemeState {
   darkMode: boolean;
   isLoading: boolean;
@@ -18,7 +32,7 @@ export const loadUserPreferences = createAsyncThunk(
   'theme/loadUserPreferences',
   async (userId: string, { rejectWithValue }) => {
     try {
-      const user = await DatabaseService.getUser(userId);
+      const user = await DatabaseService.getUser(userId) as User;
       return user?.preferences || {};
     } catch (error: any) {
       return rejectWithValue(error.message || 'Failed to load user preferences');

@@ -57,6 +57,7 @@ export interface HistoricalPrice {
   low: number;
   close: number;
   volume: number;
+  timestamp?: string | Date;
 }
 
 class BacktestingService {
@@ -95,8 +96,48 @@ class BacktestingService {
         high: Math.max(high, open, close),
         low: Math.min(low, open, close),
         close,
-        volume: Math.random() * 1000000 + 500000
+        volume: Math.random() * 1000000 + 500000,
+        timestamp: date
       });
+    }
+    
+    return data;
+  }
+
+  /**
+   * Generate mock historical data with date range
+   */
+  generateMockHistoricalData(symbol: string, startDate: Date, endDate: Date): HistoricalPrice[] {
+    const data: HistoricalPrice[] = [];
+    const current = new Date(startDate);
+    let basePrice = 40000; // Start around $40k for BTC
+    if (symbol.includes('ETH')) basePrice = 2500;
+    if (symbol.includes('ADA')) basePrice = 0.5;
+    if (symbol.includes('SOL')) basePrice = 25;
+    if (symbol.includes('DOT')) basePrice = 7;
+
+    let price = basePrice;
+    
+    while (current <= endDate) {
+      const change = (Math.random() - 0.5) * 0.1; // ±5% daily change
+      const open = price;
+      const close = price * (1 + change);
+      const high = Math.max(open, close) * (1 + Math.random() * 0.05);
+      const low = Math.min(open, close) * (1 - Math.random() * 0.05);
+      const volume = Math.floor(Math.random() * 1000000) + 100000;
+      
+      data.push({
+        date: current.toISOString().split('T')[0],
+        open,
+        high,
+        low,
+        close,
+        volume,
+        timestamp: new Date(current)
+      });
+      
+      price = close;
+      current.setDate(current.getDate() + 1);
     }
     
     return data;
@@ -419,6 +460,35 @@ class BacktestingService {
       equity,
       signals
     };
+  }
+
+  /**
+   * Run backtest and save results to database
+   */
+  async runBacktestWithStorage(
+    userId: string,
+    strategyName: string,
+    templateId: string,
+    parameters: Record<string, any>,
+    symbol: string,
+    initialCapital: number,
+    historicalData?: HistoricalPrice[]
+  ): Promise<BacktestResult> {
+    try {
+      // Use provided historical data or generate it
+      const data = historicalData || this.generateHistoricalData(symbol, 14);
+      
+      // Run the backtest
+      const result = this.runBacktest(strategyName, templateId, parameters, symbol, initialCapital);
+      
+      // Save results to database
+      await this.saveBacktestResults(userId, templateId, result);
+      
+      return result;
+    } catch (error) {
+      console.error('Error running backtest with storage:', error);
+      throw error;
+    }
   }
 
   /**

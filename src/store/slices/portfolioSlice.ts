@@ -7,6 +7,9 @@ import DatabaseService from '../../services/databaseService';
 interface PortfolioState {
   account: Account | null;
   positions: Position[];
+  watchlist: string[];
+  totalValue: number;
+  dayPL: number;
   isLoading: boolean;
   error: string | null;
   lastUpdated: number;
@@ -15,6 +18,9 @@ interface PortfolioState {
 const initialState: PortfolioState = {
   account: null,
   positions: [],
+  watchlist: ['BTCUSD', 'ETHUSD', 'ADAUSD', 'SOLUSD'],
+  totalValue: 0,
+  dayPL: 0,
   isLoading: false,
   error: null,
   lastUpdated: 0
@@ -237,6 +243,8 @@ const portfolioSlice = createSlice({
         state.isLoading = false;
         state.account = action.payload.account;
         state.positions = action.payload.positions;
+        state.totalValue = action.payload.account?.portfolioValue || 0;
+        state.dayPL = action.payload.account?.dayPL || 0;
         state.lastUpdated = Date.now();
       })
       .addCase(fetchPortfolio.rejected, (state, action) => {

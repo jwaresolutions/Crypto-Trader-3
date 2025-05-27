@@ -271,6 +271,26 @@ export const updateAutoTradingSettings = createAsyncThunk(
   }
 );
 
+export const addTradingSignal = createAsyncThunk(
+  'strategies/addTradingSignal',
+  async (signalData: {
+    symbol: string;
+    strategyId: string;
+    signal: string;
+    confidence?: number;
+    price: number;
+    timestamp: Date;
+  }, { rejectWithValue }) => {
+    try {
+      const dbService = DatabaseService;
+      const savedSignal = await dbService.saveTradingSignal(signalData);
+      return savedSignal;
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Failed to save trading signal');
+    }
+  }
+);
+
 const strategiesSlice = createSlice({
   name: 'strategies',
   initialState,
@@ -370,6 +390,19 @@ const strategiesSlice = createSlice({
         state.lastUpdated = Date.now();
       })
       .addCase(updateAutoTradingSettings.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
+      })
+      // addTradingSignal
+      .addCase(addTradingSignal.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(addTradingSignal.fulfilled, (state, action) => {
+        state.isLoading = false;
+        // Signal was saved successfully
+      })
+      .addCase(addTradingSignal.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload as string;
       });

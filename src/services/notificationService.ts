@@ -50,8 +50,14 @@ class NotificationService {
         }
       });
 
+      // Check if audit log was successfully created
+      if (!auditLog || typeof auditLog !== 'object' || !('id' in auditLog) || !('timestamp' in auditLog)) {
+        console.error('Failed to create audit log');
+        throw new Error('Failed to create notification');
+      }
+
       const notification: NotificationData = {
-        id: auditLog.id,
+        id: (auditLog as any).id,
         userId: data.userId,
         title: data.title,
         message: data.message,
@@ -59,7 +65,7 @@ class NotificationService {
         priority: data.priority || 'medium',
         isRead: false,
         actionUrl: data.actionUrl,
-        createdAt: auditLog.timestamp,
+        createdAt: (auditLog as any).timestamp,
       };
 
       // Notify listeners

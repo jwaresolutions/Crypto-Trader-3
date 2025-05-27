@@ -36,9 +36,6 @@ class DatabaseService {
         take: limit,
         orderBy: {
           createdAt: 'desc'
-        },
-        include: {
-          strategy: true
         }
       });
     } catch (error) {
@@ -92,6 +89,248 @@ class DatabaseService {
 
   async cleanup(): Promise<void> {
     await this.prisma.$disconnect();
+  }
+
+  async getUserStrategies(userId: string) {
+    try {
+      return await this.prisma.strategy.findMany({
+        where: {
+          userId: userId
+        },
+        orderBy: {
+          createdAt: 'desc'
+        }
+      });
+    } catch (error) {
+      console.error('Error fetching user strategies:', error);
+      return [];
+    }
+  }
+
+  async saveStrategy(userId: string, strategyData: any) {
+    return await this.prisma.strategy.create({
+      data: {
+        ...strategyData,
+        userId,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }
+    });
+  }
+
+  async getUserTrades(userId: string) {
+    try {
+      return await this.prisma.trade.findMany({
+        where: {
+          userId: userId
+        },
+        orderBy: {
+          entryDate: 'desc'
+        }
+      });
+    } catch (error) {
+      console.error('Error fetching user trades:', error);
+      return [];
+    }
+  }
+
+  async saveTrade(tradeData: any) {
+    return await this.prisma.trade.create({
+      data: {
+        ...tradeData,
+        entryDate: new Date()
+      }
+    });
+  }
+
+  async getUser(userId: string) {
+    return await this.prisma.user.findUnique({
+      where: {
+        id: userId
+      }
+    });
+  }
+
+  async updateUser(userId: string, userData: any) {
+    return await this.prisma.user.update({
+      where: {
+        id: userId
+      },
+      data: {
+        ...userData,
+        updatedAt: new Date()
+      }
+    });
+  }
+
+  async createUser(userData: any) {
+    return await this.prisma.user.create({
+      data: {
+        ...userData,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }
+    });
+  }
+
+  async findUser(email: string) {
+    return await this.prisma.user.findUnique({
+      where: {
+        email: email
+      }
+    });
+  }
+
+  async getUserCount() {
+    return await this.prisma.user.count();
+  }
+
+  async getMarketDataCount() {
+    return await this.prisma.marketData.count();
+  }
+
+  async getPortfolio(userId: string) {
+    try {
+      const portfolio = await this.prisma.portfolio.findFirst({
+        where: {
+          userId: userId,
+          isDefault: true
+        },
+        include: {
+          positions: true
+        }
+      });
+      
+      return portfolio || {
+        id: `portfolio_${userId}`,
+        userId,
+        totalValue: 10000,
+        dayChange: 250,
+        positions: []
+      };
+    } catch (error) {
+      console.error('Error fetching portfolio:', error);
+      return null;
+    }
+  }
+
+  async updatePosition(portfolioId: string, symbol: string, positionData: any) {
+    try {
+      return await this.prisma.position.upsert({
+        where: {
+          portfolioId_symbol: {
+            portfolioId,
+            symbol
+          }
+        },
+        update: {
+          ...positionData,
+          lastUpdated: new Date()
+        },
+        create: {
+          portfolioId,
+          symbol,
+          ...positionData,
+          lastUpdated: new Date()
+        }
+      });
+    } catch (error) {
+      console.error('Error updating position:', error);
+      return { success: false, error: (error as Error).message };
+    }
+  }
+
+  async getMarketData(symbol: string, startDate: Date, endDate: Date) {
+    try {
+      return await this.prisma.marketData.findMany({
+        where: {
+          symbol: symbol,
+          timestamp: {
+            gte: startDate,
+            lte: endDate
+          }
+        },
+        orderBy: {
+          timestamp: 'asc'
+        }
+      });
+    } catch (error) {
+      console.error('Error fetching market data:', error);
+      return [];
+    }
+  }
+
+  async logAudit(auditData: any) {
+    try {
+      return await this.prisma.auditLog.create({
+        data: {
+          ...auditData,
+          timestamp: new Date()
+        }
+      });
+    } catch (error) {
+      console.error('Error logging audit:', error);
+      return { success: false, error: (error as Error).message };
+    }
+  }
+
+  async authenticateUser(username: string, password: string) {
+    try {
+      const user = await this.prisma.user.findFirst({
+        where: {
+          OR: [
+            { username: username },
+            { email: username }
+          ]
+        }
+      });
+      
+      // In a real app, you'd verify the password hash here
+      if (user) {
+        return {
+          ...user,
+          preferences: {} // Add empty preferences object
+        };
+      }
+      return null;
+    } catch (error) {
+      console.error('Error authenticating user:', error);
+      return null;
+    }
+  }
+
+  async saveBacktest(userId: string, strategyId: string, backtestData: any) {
+    try {
+      return await this.prisma.backtest.create({
+        data: {
+          userId,
+          strategyId,
+          ...backtestData,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        }
+      });
+    } catch (error) {
+      console.error('Error saving backtest:', error);
+      throw error;
+    }
+  }
+
+  async getBacktestHistory(userId: string, limit: number = 20) {
+    try {
+      return await this.prisma.backtest.findMany({
+        where: {
+          userId: userId
+        },
+        take: limit,
+        orderBy: {
+          createdAt: 'desc'
+        }
+      });
+    } catch (error) {
+      console.error('Error getting backtest history:', error);
+      return [];
+    }
   }
 }
 

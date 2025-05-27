@@ -1,5 +1,5 @@
 import databaseService from './databaseService';
-import { BacktestingService } from './backtestingService';
+import { backtestingService } from './backtestingService';
 
 export interface MarketDataPoint {
   timestamp: Date;
@@ -41,13 +41,13 @@ export interface Position {
  */
 class TradingEngine {
   private static instance: TradingEngine;
-  private backtestingService: BacktestingService;
+  private backtestingService = backtestingService;
   private activeStrategies: Map<string, StrategyConfig> = new Map();
   private positions: Map<string, Position> = new Map();
   private isRunning: boolean = false;
 
   private constructor() {
-    this.backtestingService = new BacktestingService();
+    // Constructor is empty since backtestingService is already assigned above
   }
 
   public static getInstance(): TradingEngine {
@@ -92,7 +92,7 @@ class TradingEngine {
             id: strategy.id,
             name: strategy.name,
             templateId: strategy.templateId,
-            parameters: strategy.parameters,
+            parameters: typeof strategy.parameters === 'string' ? JSON.parse(strategy.parameters) : strategy.parameters,
             isActive: strategy.isActive,
           });
         }
@@ -153,7 +153,7 @@ class TradingEngine {
       });
 
       // Process each active strategy
-      for (const [strategyId, strategy] of this.activeStrategies) {
+      for (const [strategyId, strategy] of Array.from(this.activeStrategies.entries())) {
         try {
           const signal = await this.generateSignalForStrategy(symbol, data, strategy);
           

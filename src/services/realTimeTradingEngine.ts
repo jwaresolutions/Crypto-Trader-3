@@ -1,9 +1,9 @@
 import { Store } from '@reduxjs/toolkit';
-import { RootState } from '../store';
+import { RootState, AppDispatch } from '../store';
 import { updateMarketData } from '../store/slices/marketDataSlice';
 import { updateOrder, placeOrder } from '../store/slices/ordersSlice';
 import { addNotification } from '../store/slices/notificationsSlice';
-import { updatePortfolio } from '../store/slices/portfolioSlice';
+import { updateAccount } from '../store/slices/portfolioSlice';
 import { addTradingSignal } from '../store/slices/strategiesSlice';
 import DatabaseService from './databaseService';
 import NotificationService from './notificationService';
@@ -50,7 +50,7 @@ export interface RiskMetrics {
 }
 
 class RealTimeTradingEngine {
-  private store: Store<RootState>;
+  private store: Store<RootState> & { dispatch: AppDispatch };
   private config: TradingEngineConfig;
   private isRunning: boolean = false;
   private activeSignals: Map<string, TradingSignal> = new Map();
@@ -183,10 +183,10 @@ class RealTimeTradingEngine {
       try {
         const state = this.store.getState();
         const strategies = state.strategies.strategies;
-        const marketData = state.marketData.data;
+        const marketData = state.marketData.symbols;
 
         for (const strategy of strategies) {
-          if (strategy.isActive) {
+          if (strategy.enabled) {
             const signals = await this.generateSignalsForStrategy(strategy, marketData);
             
             for (const signal of signals) {
@@ -279,15 +279,18 @@ class RealTimeTradingEngine {
     this.activeSignals.set(signal.id, signal);
     
     // Add to Redux store
-    this.store.dispatch(addTradingSignal({
-      id: signal.id,
-      strategyId: signal.strategyId,
-      symbol: signal.symbol,
-      action: signal.action,
-      confidence: signal.confidence,
-      timestamp: signal.timestamp,
-      metadata: signal.metadata,
-    }));
+    try {
+      await this.store.dispatch(addTradingSignal({
+        symbol: signal.symbol,
+        strategyId: signal.strategyId,
+        signal: signal.action.toLowerCase(),
+        confidence: signal.confidence,
+        price: signal.price,
+        timestamp: new Date(signal.timestamp),
+      })).unwrap();
+    } catch (error) {
+      console.error('Error adding trading signal to store:', error);
+    }
 
     // Send notification
     if (this.config.enableSignalNotifications) {
@@ -315,13 +318,12 @@ class RealTimeTradingEngine {
     if (state.auth.user) {
       try {
         await DatabaseService.saveTradingSignal({
-          userId: state.auth.user.id,
           strategyId: signal.strategyId,
           symbol: signal.symbol,
-          action: signal.action,
+          signal: signal.action.toLowerCase(),
           confidence: signal.confidence,
           price: signal.price,
-          metadata: signal.metadata,
+          timestamp: new Date(signal.timestamp),
         });
       } catch (error) {
         console.error('Error saving signal to database:', error);
@@ -353,17 +355,20 @@ class RealTimeTradingEngine {
       };
 
       // Place order through Redux action
-      this.store.dispatch(placeOrder(orderRequest));
-
-      console.log(`Executed ${signal.action} order for ${signal.symbol}:`, orderRequest);
-    } catch (error) {
+      try {
+        const result = await this.store.dispatch(placeOrder(orderRequest)).unwrap();
+        console.log(`Executed ${signal.action} order for ${signal.symbol}:`, orderRequest);
+      } catch (error) {
+        throw new Error('Failed to place order: ' + (error as string));
+      }
+    } catch (error: any) {
       console.error('Error executing signal:', error);
       
       this.store.dispatch(addNotification({
         id: Date.now().toString(),
         type: 'error',
         title: 'Order Execution Failed',
-        message: `Failed to execute ${signal.action} order for ${signal.symbol}: ${error.message}`,
+        message: `Failed to execute ${signal.action} order for ${signal.symbol}: ${error?.message || 'Unknown error'}`,
         priority: 'high',
         read: false,
         createdAt: new Date().toISOString(),

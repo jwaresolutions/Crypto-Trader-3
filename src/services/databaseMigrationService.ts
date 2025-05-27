@@ -5,31 +5,15 @@ import NotificationService from './notificationService';
 interface DatabaseMigration {
   version: string;
   description: string;
-  up: () => Promise        // Test user table access
-    try {
-      const start = Date.now();
-      const userCount = await DatabaseService.getUserCount();
-      const responseTime = Date.now() - start;
-
-      checks.push({
-        name: 'User Table Access',
-        status: 'pass',
-        message: `User table accessible, ${userCount} users found`,
-        responseTime
-      });
-    } catch (error) {
-      checks.push({
-        name: 'User Table Access',
-        status: 'fail',
-        message: `User table access error: ${error}`
-      });
-      if (overallStatus === 'healthy') overallStatus = 'degraded';
-    } access
-    try {
-      const start = Date.now();
-      const userCount = await DatabaseService.prisma.user.count();
-      const responseTime = Date.now() - start;>;
+  up: () => Promise<void>;
   down: () => Promise<void>;
+}
+
+interface HealthCheck {
+  name: string;
+  status: 'pass' | 'fail';
+  message: string;
+  responseTime?: number;
 }
 
 class DatabaseMigrationService {
@@ -256,7 +240,7 @@ class DatabaseMigrationService {
       responseTime?: number;
     }>;
   }> {
-    const checks = [];
+    const checks: HealthCheck[] = [];
     let overallStatus: 'healthy' | 'degraded' | 'unhealthy' = 'healthy';
 
     // Test database connection
