@@ -15,6 +15,7 @@ import Settings from './pages/Settings';
 import StrategyConfiguration from './pages/StrategyConfiguration';
 import StrategyManagement from './pages/StrategyManagement';
 import Backtesting from './pages/Backtesting';
+import SystemStatus from './pages/SystemStatus';
 
 const AppContent: React.FC = () => {
   const darkMode = useSelector((state: RootState) => state.theme.darkMode);
@@ -57,6 +58,7 @@ const AppContent: React.FC = () => {
                 <Route path="/strategy-configuration" element={<StrategyConfiguration />} />
                 <Route path="/strategy-management" element={<StrategyManagement />} />
                 <Route path="/backtesting" element={<Backtesting />} />
+                <Route path="/system-status" element={<SystemStatus />} />
                 <Route path="/settings" element={<Settings />} />
               </Routes>
             </Layout>

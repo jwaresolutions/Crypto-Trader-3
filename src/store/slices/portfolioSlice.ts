@@ -2,6 +2,7 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { Account, Position } from './types';
 import { alpacaService } from '../../services/alpacaService';
+import DatabaseService from '../../services/databaseService';
 
 interface PortfolioState {
   account: Account | null;
@@ -52,6 +53,34 @@ export const fetchPortfolio = createAsyncThunk(
         alpacaService.getAccount(),
         alpacaService.getPositions()
       ]);
+      
+      // Store portfolio data in database
+      // TODO: Implement updatePortfolio method in DatabaseService
+      // const dbService = DatabaseService;
+      // await dbService.updatePortfolio('default-user', {
+      //   totalValue: account.portfolioValue,
+      //   cash: account.cash,
+      //   equity: account.equity,
+      //   dayPL: account.dayPL,
+      //   totalPL: account.unrealizedPL,
+      //   updatedAt: new Date()
+      // });
+
+      // Store positions in database
+      // TODO: Fix updatePosition method signature
+      // for (const position of positions) {
+      //   await dbService.updatePosition('default-user', {
+      //     symbol: position.symbol,
+      //     quantity: parseFloat(position.qty.toString()),
+      //     averagePrice: position.avgEntryPrice,
+      //     currentPrice: position.currentPrice,
+      //     marketValue: position.marketValue,
+      //     unrealizedPL: position.unrealizedPL,
+      //     side: position.side === 'long' ? 'LONG' : 'SHORT',
+      //     updatedAt: new Date()
+      //   });
+      // }
+      
       return { account, positions };
     } catch (error: any) {
       console.warn('Alpaca API failed, using mock data:', error.message);

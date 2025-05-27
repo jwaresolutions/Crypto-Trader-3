@@ -2,9 +2,11 @@ import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { MarketData } from './types';
 import { polygonService } from '../../services/polygonService';
 import { webSocketService } from '../../services/websocketService';
+import DatabaseService from '../../services/databaseService';
 
 interface MarketDataState {
   symbols: Record<string, MarketData>;
+  historicalData: Record<string, any[]>; // symbol -> historical data array
   currentSymbol: string;
   isLoading: boolean;
   error: string | null;
@@ -14,6 +16,7 @@ interface MarketDataState {
 
 const initialState: MarketDataState = {
   symbols: {},
+  historicalData: {},
   currentSymbol: 'BTCUSD',
   isLoading: false,
   error: null,
@@ -31,11 +34,41 @@ export const fetchMarketData = createAsyncThunk(
       
       marketData.forEach(data => {
         symbolsMap[data.symbol] = data;
+        // Store market data in database
+        DatabaseService.saveMarketData({
+          symbol: data.symbol,
+          timestamp: new Date(),
+          open: data.open || data.price,
+          high: data.high || data.price,
+          low: data.low || data.price,
+          close: data.price,
+          volume: data.volume || 0,
+          vwap: data.price, // Use current price as VWAP fallback
+          source: 'polygon'
+        }).catch((err: any) => console.warn('Failed to store market data:', err));
       });
       
       return symbolsMap;
     } catch (error: any) {
       return rejectWithValue(error.message || 'Failed to fetch market data');
+    }
+  }
+);
+
+export const fetchHistoricalData = createAsyncThunk(
+  'marketData/fetchHistoricalData',
+  async ({ symbol, timeframe, from, to }: { 
+    symbol: string; 
+    timeframe: string; 
+    from: Date; 
+    to: Date;
+  }, { rejectWithValue }) => {
+    try {
+      const dbService = DatabaseService;
+      const historicalData = await dbService.getMarketData(symbol, from, to);
+      return { symbol, data: historicalData };
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Failed to fetch historical data');
     }
   }
 );
@@ -119,6 +152,20 @@ const marketDataSlice = createSlice({
         state.lastUpdated = Date.now();
       })
       .addCase(fetchMarketData.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
+      })
+      // fetchHistoricalData
+      .addCase(fetchHistoricalData.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(fetchHistoricalData.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.historicalData[action.payload.symbol] = action.payload.data;
+        state.lastUpdated = Date.now();
+      })
+      .addCase(fetchHistoricalData.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload as string;
       })

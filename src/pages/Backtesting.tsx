@@ -44,6 +44,7 @@ import { useSelector } from 'react-redux';
 import { RootState } from '../store';
 import { StrategyTemplate, StrategyParameter } from '../store/slices/strategiesSlice';
 import { backtestingService, BacktestResult, BacktestTrade } from '../services/backtestingService';
+import DatabaseService from '../services/databaseService';
 import { Line } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -101,8 +102,28 @@ const Backtesting: React.FC = () => {
   const [isRunning, setIsRunning] = useState(false);
   const [results, setResults] = useState<BacktestResult | null>(null);
   const [tabValue, setTabValue] = useState(0);
+  const [backtestHistory, setBacktestHistory] = useState<any[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
 
   const availableSymbols = ['BTCUSD', 'ETHUSD', 'ADAUSD', 'SOLUSD', 'DOTUSD'];
+
+  // Load backtest history from database
+  const loadBacktestHistory = async () => {
+    setLoadingHistory(true);
+    try {
+      const history = await backtestingService.getBacktestHistory('default-user');
+      setBacktestHistory(history);
+    } catch (error) {
+      console.error('Failed to load backtest history:', error);
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
+
+  // Load history on component mount
+  React.useEffect(() => {
+    loadBacktestHistory();
+  }, []);
 
   const handleTemplateSelect = (template: StrategyTemplate) => {
     setSelectedTemplate(template);
@@ -128,9 +149,61 @@ const Backtesting: React.FC = () => {
     }, {} as Record<string, any>);
     
     try {
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Initialize database if needed
+      const dbService = DatabaseService;
       
+      // Get historical data from database first
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setMonth(startDate.getMonth() - 6); // 6 months of data
+      
+      let historicalData = await backtestingService.getHistoricalData(
+        selectedSymbol,
+        '1d',
+        startDate,
+        endDate
+      );
+      
+      // If no data in database, generate mock data
+      if (historicalData.length === 0) {
+        console.log('No historical data found in database, using mock data');
+        historicalData = backtestingService.generateMockHistoricalData(selectedSymbol, startDate, endDate);
+        
+        // Store mock data in database for future use
+        for (const dataPoint of historicalData) {
+          await dbService.storeMarketData({
+            symbol: selectedSymbol,
+            timestamp: dataPoint.timestamp,
+            open: dataPoint.open,
+            high: dataPoint.high,
+            low: dataPoint.low,
+            close: dataPoint.close,
+            volume: dataPoint.volume,
+            vwap: (dataPoint.high + dataPoint.low + dataPoint.close) / 3,
+            source: 'mock'
+          });
+        }
+      }
+      
+      // Run the backtest with database storage
+      const result = await backtestingService.runBacktestWithStorage(
+        'default-user',
+        strategyName,
+        selectedTemplate.id,
+        paramObject,
+        selectedSymbol,
+        initialCapital,
+        historicalData
+      );
+      
+      setResults(result);
+      setTabValue(1); // Switch to results tab
+      
+      // Reload backtest history
+      await loadBacktestHistory();
+    } catch (error: any) {
+      console.error('Backtest failed:', error);
+      // Fallback to in-memory backtest
       const result = backtestingService.runBacktest(
         strategyName,
         selectedTemplate.id,
@@ -138,11 +211,8 @@ const Backtesting: React.FC = () => {
         selectedSymbol,
         initialCapital
       );
-      
       setResults(result);
-      setTabValue(1); // Switch to results tab
-    } catch (error) {
-      console.error('Backtest failed:', error);
+      setTabValue(1);
     } finally {
       setIsRunning(false);
     }

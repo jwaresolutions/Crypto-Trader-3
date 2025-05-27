@@ -1,4 +1,5 @@
 import { StrategySignal, TradeStrategy, StrategyTemplate } from '../store/slices/strategiesSlice';
+import databaseService from './databaseService';
 
 export interface BacktestTrade {
   id: string;
@@ -418,6 +419,125 @@ class BacktestingService {
       equity,
       signals
     };
+  }
+
+  /**
+   * Get historical data from database or generate if not available
+   */
+  async getHistoricalData(symbol: string, days: number): Promise<HistoricalPrice[]> {
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(endDate.getDate() - days);
+
+    try {
+      // Try to get data from database first
+      const dbData = await databaseService.getMarketData(symbol, startDate, endDate);
+      
+      if (dbData.length > 0) {
+        console.log(`Found ${dbData.length} historical data points for ${symbol} in database`);
+        return dbData.map(d => ({
+          date: d.timestamp.toISOString().split('T')[0],
+          open: d.open,
+          high: d.high,
+          low: d.low,
+          close: d.close,
+          volume: d.volume,
+        }));
+      }
+    } catch (error) {
+      console.warn('Error fetching from database, using generated data:', error);
+    }
+
+    // Fall back to generated data
+    console.log(`Generating mock historical data for ${symbol}`);
+    return this.generateHistoricalData(symbol, days);
+  }
+
+  /**
+   * Save backtest results to database
+   */
+  async saveBacktestResults(
+    userId: string,
+    strategyId: string | null,
+    result: BacktestResult
+  ): Promise<string> {
+    try {
+      const backtest = await databaseService.saveBacktest(
+        userId,
+        strategyId || 'default-strategy',
+        {
+          name: `${result.strategy.name} - ${result.period.symbol}`,
+          symbol: result.period.symbol,
+          startDate: new Date(result.period.startDate),
+          endDate: new Date(result.period.endDate),
+          initialCapital: 10000, // Default initial capital
+          finalCapital: 10000 + result.performance.totalReturn,
+          totalReturn: result.performance.totalReturn,
+          totalReturnPct: result.performance.totalReturnPercent,
+          maxDrawdown: result.performance.maxDrawdown,
+          maxDrawdownPct: (result.performance.maxDrawdown / 10000) * 100,
+          sharpeRatio: result.performance.sharpeRatio,
+          winRate: result.performance.winRate,
+          totalTrades: result.performance.totalTrades,
+          winningTrades: result.performance.winningTrades,
+          losingTrades: result.performance.losingTrades,
+          averageWin: result.performance.avgWin,
+          averageLoss: result.performance.avgLoss,
+          trades: result.trades.map(trade => ({
+            entryDate: new Date(trade.entryDate),
+            exitDate: trade.exitDate ? new Date(trade.exitDate) : undefined,
+            entryPrice: trade.entryPrice,
+            exitPrice: trade.exitPrice,
+            quantity: trade.quantity,
+            type: trade.type,
+            pnl: trade.pnl,
+            pnlPercent: trade.pnlPercent,
+            status: trade.status,
+          })),
+        }
+      );
+
+      console.log(`Backtest saved with ID: ${backtest.id}`);
+      return backtest.id;
+    } catch (error) {
+      console.error('Error saving backtest results:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get backtest history for a user
+   */
+  async getBacktestHistory(userId: string, limit: number = 20) {
+    try {
+      return await databaseService.getBacktestHistory(userId, limit);
+    } catch (error) {
+      console.error('Error fetching backtest history:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Store historical market data in database
+   */
+  async storeMarketData(symbol: string, data: HistoricalPrice[]) {
+    try {
+      for (const point of data) {
+        await databaseService.saveMarketData({
+          symbol,
+          timestamp: new Date(point.date),
+          open: point.open,
+          high: point.high,
+          low: point.low,
+          close: point.close,
+          volume: point.volume,
+          source: 'generated',
+        });
+      }
+      console.log(`Stored ${data.length} data points for ${symbol}`);
+    } catch (error) {
+      console.error('Error storing market data:', error);
+    }
   }
 }
 

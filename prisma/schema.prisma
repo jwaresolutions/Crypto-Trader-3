@@ -1,0 +1,277 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// User Management
+model User {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  username    String   @unique
+  password    String
+  firstName   String?
+  lastName    String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relationships
+  strategies  Strategy[]
+  backtests   Backtest[]
+  trades      Trade[]
+  portfolios  Portfolio[]
+  apiKeys     ApiKey[]
+  preferences UserPreferences?
+
+  @@map("users")
+}
+
+model UserPreferences {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  theme           String   @default("dark")
+  notifications   Boolean  @default(true)
+  defaultCapital  Float    @default(10000)
+  riskTolerance   String   @default("medium") // low, medium, high
+  tradingPairs    String   @default("[]") // JSON string of preferred trading pairs
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_preferences")
+}
+
+// API Keys for External Services
+model ApiKey {
+  id          String   @id @default(cuid())
+  userId      String
+  provider    String   // alpaca, polygon, etc.
+  keyId       String
+  secretKey   String   // encrypted
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("api_keys")
+}
+
+// Historical Market Data
+model MarketData {
+  id        String   @id @default(cuid())
+  symbol    String
+  timestamp DateTime
+  open      Float
+  high      Float
+  low       Float
+  close     Float
+  volume    Float
+  vwap      Float?   // Volume Weighted Average Price
+  source    String   @default("polygon") // polygon, alpaca, etc.
+  createdAt DateTime @default(now())
+
+  @@unique([symbol, timestamp, source])
+  @@index([symbol, timestamp])
+  @@map("market_data")
+}
+
+// Technical Indicators (Pre-calculated for performance)
+model TechnicalIndicator {
+  id        String   @id @default(cuid())
+  symbol    String
+  timestamp DateTime
+  indicator String   // rsi, sma_20, ema_50, bb_upper, bb_lower, etc.
+  value     Float
+  period    Int?     // for moving averages, RSI period, etc.
+  source    String   @default("calculated")
+  createdAt DateTime @default(now())
+
+  @@unique([symbol, timestamp, indicator, period])
+  @@index([symbol, timestamp, indicator])
+  @@map("technical_indicators")
+}
+
+// Trading Strategies
+model Strategy {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String
+  description String?
+  templateId  String   // rsi-mean-reversion, ma-crossover, etc.
+  parameters  String   // JSON string of strategy parameters
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relationships
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  backtests Backtest[]
+  trades    Trade[]
+
+  @@map("strategies")
+}
+
+// Backtesting Results
+model Backtest {
+  id              String   @id @default(cuid())
+  userId          String
+  strategyId      String
+  name            String
+  symbol          String
+  startDate       DateTime
+  endDate         DateTime
+  initialCapital  Float
+  finalCapital    Float
+  totalReturn     Float
+  totalReturnPct  Float
+  maxDrawdown     Float
+  maxDrawdownPct  Float
+  sharpeRatio     Float?
+  winRate         Float
+  totalTrades     Int
+  winningTrades   Int
+  losingTrades    Int
+  averageWin      Float?
+  averageLoss     Float?
+  status          String   @default("completed") // running, completed, failed
+  createdAt       DateTime @default(now())
+
+  // Relationships
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  strategy    Strategy       @relation(fields: [strategyId], references: [id], onDelete: Cascade)
+  trades      BacktestTrade[]
+
+  @@map("backtests")
+}
+
+model BacktestTrade {
+  id          String    @id @default(cuid())
+  backtestId  String
+  entryDate   DateTime
+  exitDate    DateTime?
+  entryPrice  Float
+  exitPrice   Float?
+  quantity    Float
+  type        String    // buy, short
+  pnl         Float?
+  pnlPercent  Float?
+  status      String    @default("open") // open, closed
+  
+  backtest Backtest @relation(fields: [backtestId], references: [id], onDelete: Cascade)
+
+  @@map("backtest_trades")
+}
+
+// Live Trading
+model Trade {
+  id             String    @id @default(cuid())
+  userId         String
+  strategyId     String?
+  symbol         String
+  side           String    // buy, sell
+  type           String    // market, limit, stop
+  quantity       Float
+  price          Float?
+  stopLoss       Float?
+  takeProfit     Float?
+  status         String    @default("pending") // pending, filled, cancelled, rejected
+  brokerOrderId  String?   // External broker order ID
+  entryDate      DateTime  @default(now())
+  exitDate       DateTime?
+  pnl            Float?
+  commission     Float?
+  notes          String?
+
+  // Relationships
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  strategy Strategy? @relation(fields: [strategyId], references: [id], onDelete: SetNull)
+
+  @@map("trades")
+}
+
+// Portfolio Management
+model Portfolio {
+  id           String   @id @default(cuid())
+  userId       String
+  name         String   @default("Default Portfolio")
+  cash         Float    @default(0)
+  totalValue   Float    @default(0)
+  dayChange    Float    @default(0)
+  dayChangePct Float    @default(0)
+  isDefault    Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relationships
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  positions Position[]
+
+  @@map("portfolios")
+}
+
+model Position {
+  id            String    @id @default(cuid())
+  portfolioId   String
+  symbol        String
+  quantity      Float
+  averagePrice  Float
+  currentPrice  Float?
+  marketValue   Float?
+  unrealizedPnl Float?
+  realizedPnl   Float     @default(0)
+  lastUpdated   DateTime  @default(now())
+
+  portfolio Portfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+
+  @@unique([portfolioId, symbol])
+  @@map("positions")
+}
+
+// Trading Signals (Live signals for strategies)
+model TradingSignal {
+  id         String   @id @default(cuid())
+  symbol     String
+  strategyId String
+  signal     String   // buy, sell, short, cover, none
+  confidence Float?   // 0-1 confidence score
+  price      Float
+  timestamp  DateTime
+  processed  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  @@index([symbol, timestamp])
+  @@index([processed, createdAt])
+  @@map("trading_signals")
+}
+
+// System Configuration
+model SystemConfig {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  type      String   @default("string") // string, number, boolean, json
+  updatedAt DateTime @updatedAt
+
+  @@map("system_config")
+}
+
+// Audit Log for important events
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String   // login, trade_executed, strategy_created, etc.
+  details   String?  // JSON string with additional details
+  ipAddress String?
+  userAgent String?
+  timestamp DateTime @default(now())
+
+  @@index([userId, timestamp])
+  @@index([action, timestamp])
+  @@map("audit_logs")
+}

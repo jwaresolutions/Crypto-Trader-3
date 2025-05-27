@@ -11,7 +11,8 @@ import {
   Chip,
   Divider,
   ListItemIcon,
-  ListItemText
+  ListItemText,
+  Badge
 } from '@mui/material';
 import {
   AccountCircle,
@@ -19,12 +20,14 @@ import {
   Settings,
   DarkMode,
   LightMode,
-  Menu as MenuIcon
+  Menu as MenuIcon,
+  Notifications
 } from '@mui/icons-material';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState, AppDispatch } from '../../store';
 import { logout } from '../../store/slices/authSlice';
 import { toggleDarkMode } from '../../store/slices/themeSlice';
+import NotificationCenter from '../common/NotificationCenter';
 
 interface NavigationBarProps {
   onMenuClick?: () => void;
@@ -37,8 +40,10 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
   const { user, accountId } = useSelector((state: RootState) => state.auth);
   const { account } = useSelector((state: RootState) => state.portfolio);
   const darkMode = useSelector((state: RootState) => state.theme.darkMode);
+  const { unreadCount } = useSelector((state: RootState) => state.notifications);
   
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [notificationCenterOpen, setNotificationCenterOpen] = useState(false);
 
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -123,6 +128,18 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
           </Box>
         )}
 
+        {/* Notifications */}
+        <IconButton
+          size="large"
+          onClick={() => setNotificationCenterOpen(true)}
+          color="inherit"
+          sx={{ mr: 1 }}
+        >
+          <Badge badgeContent={unreadCount} color="error">
+            <Notifications />
+          </Badge>
+        </IconButton>
+
         {/* Account Menu */}
         <IconButton
           size="large"
@@ -202,6 +219,12 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
           </MenuItem>
         </Menu>
       </Toolbar>
+
+      {/* Notification Center */}
+      <NotificationCenter
+        isOpen={notificationCenterOpen}
+        onClose={() => setNotificationCenterOpen(false)}
+      />
     </AppBar>
   );
 };

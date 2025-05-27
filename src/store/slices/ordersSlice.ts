@@ -1,11 +1,13 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { Order } from './types';
 import { alpacaService, CreateOrderRequest, ModifyOrderRequest } from '../../services/alpacaService';
+import DatabaseService from '../../services/databaseService';
 
 interface OrdersState {
   orders: Order[];
   activeOrders: Order[];
   orderHistory: Order[];
+  trades: any[];
   isLoading: boolean;
   error: string | null;
   lastUpdated: number;
@@ -15,6 +17,7 @@ const initialState: OrdersState = {
   orders: [],
   activeOrders: [],
   orderHistory: [],
+  trades: [],
   isLoading: false,
   error: null,
   lastUpdated: 0
@@ -34,11 +37,40 @@ export const fetchOrders = createAsyncThunk(
   }
 );
 
+export const fetchTradeHistory = createAsyncThunk(
+  'orders/fetchTradeHistory',
+  async (userId: string, { rejectWithValue }) => {
+    try {
+      const trades = await DatabaseService.getUserTrades(userId);
+      return trades;
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Failed to fetch trade history');
+    }
+  }
+);
+
 export const placeOrder = createAsyncThunk(
   'orders/placeOrder',
-  async (orderData: CreateOrderRequest, { rejectWithValue }) => {
+  async (orderData: CreateOrderRequest & { userId?: string; strategyId?: string }, { rejectWithValue }) => {
     try {
+      // Place order with broker
       const order = await alpacaService.createOrder(orderData);
+      
+      // Save trade to database if user info provided
+      if (orderData.userId) {
+        await DatabaseService.saveTrade({
+          userId: orderData.userId,
+          strategyId: orderData.strategyId,
+          symbol: orderData.symbol,
+          type: orderData.side,
+          quantity: parseFloat(orderData.qty),
+          price: orderData.type === 'market' ? null : parseFloat(orderData.limit_price || '0'),
+          status: 'pending',
+          orderId: order.id,
+          source: 'alpaca'
+        });
+      }
+      
       return order;
     } catch (error: any) {
       return rejectWithValue(error.message || 'Failed to place order');
@@ -133,6 +165,19 @@ const ordersSlice = createSlice({
         state.lastUpdated = Date.now();
       })
       .addCase(fetchOrders.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
+      })
+      // fetchTradeHistory
+      .addCase(fetchTradeHistory.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(fetchTradeHistory.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.trades = action.payload;
+      })
+      .addCase(fetchTradeHistory.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload as string;
       })

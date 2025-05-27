@@ -1,4 +1,5 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+import DatabaseService from '../../services/databaseService';
 
 // Trade Strategy Types
 export type StrategySignal = 'buy' | 'short' | 'none';
@@ -156,17 +157,56 @@ const initialState: StrategiesState = {
 };
 
 // Async thunks for strategy operations
+export const loadStrategies = createAsyncThunk(
+  'strategies/loadStrategies',
+  async (userId: string = 'default-user', { rejectWithValue }) => {
+    try {
+      const dbService = DatabaseService;
+      const strategies = await dbService.getUserStrategies(userId);
+      
+      // Convert database strategies to frontend format
+      return strategies.map((strategy: any) => ({
+        id: strategy.id,
+        name: strategy.name,
+        description: strategy.description || '',
+        category: (strategy.type as any) || 'custom',
+        enabled: strategy.isActive,
+        parameters: JSON.parse(strategy.parameters || '[]'),
+        currentSignal: 'none' as StrategySignal,
+        lastSignalTime: 0,
+        performance: {
+          totalSignals: 0,
+          successfulSignals: 0,
+          winRate: 0,
+          averageReturn: 0,
+        },
+        created: strategy.createdAt.toISOString(),
+        lastModified: strategy.updatedAt.toISOString(),
+      }));
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Failed to load strategies');
+    }
+  }
+);
+
 export const createStrategy = createAsyncThunk(
   'strategies/createStrategy',
   async (strategyData: { templateId: string; name: string; parameters: StrategyParameter[] }, { rejectWithValue }) => {
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      const newStrategy: TradeStrategy = {
+      // TODO: Implement database strategy creation
+      // For now, using mock implementation
+      const strategy = {
         id: `strategy_${Date.now()}`,
         name: strategyData.name,
         description: `Custom strategy based on ${strategyData.templateId}`,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+      
+      const newStrategy: TradeStrategy = {
+        id: strategy.id,
+        name: strategy.name,
+        description: strategy.description || '',
         category: 'custom',
         enabled: false,
         parameters: strategyData.parameters,
@@ -178,8 +218,8 @@ export const createStrategy = createAsyncThunk(
           winRate: 0,
           averageReturn: 0,
         },
-        created: new Date().toISOString(),
-        lastModified: new Date().toISOString(),
+        created: strategy.createdAt.toISOString(),
+        lastModified: strategy.updatedAt.toISOString(),
       };
       
       return newStrategy;
@@ -207,9 +247,9 @@ export const deleteStrategy = createAsyncThunk(
   'strategies/deleteStrategy',
   async (strategyId: string, { rejectWithValue }) => {
     try {
-      // Simulate API call
+      // TODO: Implement database strategy deletion
+      // For now, using mock implementation
       await new Promise(resolve => setTimeout(resolve, 300));
-      
       return strategyId;
     } catch (error: any) {
       return rejectWithValue(error.message || 'Failed to delete strategy');
@@ -259,6 +299,20 @@ const strategiesSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
+      // loadStrategies
+      .addCase(loadStrategies.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(loadStrategies.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.strategies = action.payload;
+        state.lastUpdated = Date.now();
+      })
+      .addCase(loadStrategies.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
+      })
       // createStrategy
       .addCase(createStrategy.pending, (state) => {
         state.isLoading = true;

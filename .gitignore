@@ -108,3 +108,5 @@ secrets.json
 # Local configuration overrides
 config.local.js
 config.local.json
+
+/src/generated/prisma
