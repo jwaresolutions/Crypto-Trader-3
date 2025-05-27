@@ -18,6 +18,7 @@ import {
   AccountBalance as AccountBalanceIcon,
   ListAlt as ListAltIcon,
   Settings as SettingsIcon,
+  ArrowForward as ArrowForwardIcon,
 } from '@mui/icons-material';
 import { Link, useLocation } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
@@ -59,9 +60,12 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const drawer = (
     <Box>
       <Toolbar>
-        <Typography variant="h6" noWrap component="div">
-          CryptoTrader
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <ArrowForwardIcon sx={{ fontSize: 24, color: 'primary.main', mr: 1 }} />
+          <Typography variant="h6" noWrap component="div">
+            CryptoTrader
+          </Typography>
+        </Box>
       </Toolbar>
       <List>
         {menuItems.map((item) => {

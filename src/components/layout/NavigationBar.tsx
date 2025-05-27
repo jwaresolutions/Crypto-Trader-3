@@ -14,7 +14,6 @@ import {
   ListItemText
 } from '@mui/material';
 import {
-  TrendingUp,
   AccountCircle,
   Logout,
   Settings,
@@ -97,16 +96,11 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
           </IconButton>
         )}
 
-        {/* Logo and Title */}
+        {/* Account Status and Portfolio Info */}
         <Box sx={{ display: 'flex', alignItems: 'center', flexGrow: 1 }}>
-          <TrendingUp sx={{ fontSize: 28, color: 'primary.main', mr: 1 }} />
-          <Typography variant="h6" component="div" fontWeight="bold" color="text.primary">
-            CryptoTrader
-          </Typography>
-          
           {/* Account Status */}
           {account && (
-            <Box sx={{ ml: 3 }}>
+            <Box>
               <Chip
                 label={`Paper Trading - ${account.status}`}
                 color={getStatusColor(account.status) as any}
