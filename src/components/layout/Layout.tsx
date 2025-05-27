@@ -19,6 +19,8 @@ import {
   ListAlt as ListAltIcon,
   Settings as SettingsIcon,
   ArrowForward as ArrowForwardIcon,
+  Psychology as PsychologyIcon,
+  Build as BuildIcon,
 } from '@mui/icons-material';
 import { Link, useLocation } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
@@ -54,6 +56,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     { text: 'Trading', icon: <TrendingUpIcon />, path: '/trading' },
     { text: 'Portfolio', icon: <AccountBalanceIcon />, path: '/portfolio' },
     { text: 'Orders', icon: <ListAltIcon />, path: '/orders' },
+    { text: 'Strategy Config', icon: <BuildIcon />, path: '/strategy-configuration' },
+    { text: 'Strategy Management', icon: <PsychologyIcon />, path: '/strategy-management' },
     { text: 'Settings', icon: <SettingsIcon />, path: '/settings' },
   ];
 

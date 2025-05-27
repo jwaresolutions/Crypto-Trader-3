@@ -12,6 +12,8 @@ import Trading from './pages/Trading';
 import Portfolio from './pages/Portfolio';
 import Orders from './pages/Orders';
 import Settings from './pages/Settings';
+import StrategyConfiguration from './pages/StrategyConfiguration';
+import StrategyManagement from './pages/StrategyManagement';
 
 const AppContent: React.FC = () => {
   const darkMode = useSelector((state: RootState) => state.theme.darkMode);
@@ -51,6 +53,8 @@ const AppContent: React.FC = () => {
                 <Route path="/trading" element={<Trading />} />
                 <Route path="/portfolio" element={<Portfolio />} />
                 <Route path="/orders" element={<Orders />} />
+                <Route path="/strategy-configuration" element={<StrategyConfiguration />} />
+                <Route path="/strategy-management" element={<StrategyManagement />} />
                 <Route path="/settings" element={<Settings />} />
               </Routes>
             </Layout>
