@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -20,7 +20,8 @@ import {
   MenuItem,
   Alert,
   Tooltip,
-  TextField
+  TextField,
+  Snackbar
 } from '@mui/material';
 import {
   Assignment,
@@ -30,7 +31,8 @@ import {
   CheckCircle,
   Schedule,
   Error as ErrorIcon,
-  Refresh
+  Refresh,
+  Check
 } from '@mui/icons-material';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState, AppDispatch } from '../../store';
@@ -54,9 +56,41 @@ const ActiveOrders: React.FC = () => {
   const [dialogType, setDialogType] = useState<'cancel' | 'modify'>('cancel');
   const [modifyPrice, setModifyPrice] = useState('');
   const [modifyQuantity, setModifyQuantity] = useState('');
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [lastRefreshTime, setLastRefreshTime] = useState<Date | null>(null);
+  const [showRefreshSuccess, setShowRefreshSuccess] = useState(false);
+
+  // Initialize last refresh time on mount
+  useEffect(() => {
+    setLastRefreshTime(new Date());
+  }, []);
 
   const handleRetry = () => {
     dispatch(fetchOrders({ status: 'open' }));
+  };
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await dispatch(fetchOrders({ status: 'open' })).unwrap();
+      setLastRefreshTime(new Date());
+      setShowRefreshSuccess(true);
+    } catch (error) {
+      console.error('Failed to refresh orders:', error);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  const formatLastRefreshTime = (time: Date | null) => {
+    if (!time) return '';
+    return time.toLocaleString([], { 
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit', 
+      minute: '2-digit',
+      second: '2-digit'
+    });
   };
 
   if (isLoading) {
@@ -260,11 +294,35 @@ const ActiveOrders: React.FC = () => {
           <Assignment />
           Active Orders
         </Typography>
-        <Tooltip title="Refresh orders">
-          <IconButton size="small" disabled={isLoading}>
-            <Refresh />
-          </IconButton>
-        </Tooltip>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          {lastRefreshTime && (
+            <Typography variant="caption" color="text.secondary">
+              Last updated: {formatLastRefreshTime(lastRefreshTime)}
+            </Typography>
+          )}
+          <Tooltip title={isRefreshing ? "Refreshing..." : "Refresh orders"}>
+            <IconButton 
+              size="small" 
+              disabled={isLoading || isRefreshing}
+              onClick={handleRefresh}
+              sx={{
+                '&.Mui-disabled': {
+                  color: isRefreshing ? 'primary.main' : 'action.disabled'
+                }
+              }}
+            >
+              <Refresh 
+                sx={{ 
+                  animation: isRefreshing ? 'spin 1s linear infinite' : 'none',
+                  '@keyframes spin': {
+                    '0%': { transform: 'rotate(0deg)' },
+                    '100%': { transform: 'rotate(360deg)' }
+                  }
+                }} 
+              />
+            </IconButton>
+          </Tooltip>
+        </Box>
       </Box>
 
       {/* Orders Table */}
@@ -463,6 +521,24 @@ const ActiveOrders: React.FC = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Success Snackbar */}
+      <Snackbar
+        open={showRefreshSuccess}
+        autoHideDuration={2000}
+        onClose={() => setShowRefreshSuccess(false)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert 
+          onClose={() => setShowRefreshSuccess(false)} 
+          severity="success" 
+          variant="filled"
+          icon={<Check />}
+          sx={{ width: '100%' }}
+        >
+          Orders refreshed successfully
+        </Alert>
+      </Snackbar>
     </Paper>
   );
 };

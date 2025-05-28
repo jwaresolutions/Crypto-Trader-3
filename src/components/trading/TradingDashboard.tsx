@@ -52,6 +52,7 @@ const TradingDashboard: React.FC = () => {
     const interval = setInterval(() => {
       dispatch(fetchPortfolio());
       dispatch(fetchMarketData(majorSymbols));
+      dispatch(fetchOrders({ status: 'open' }));
     }, 30000);
 
     return () => clearInterval(interval);

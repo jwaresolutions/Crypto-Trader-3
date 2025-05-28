@@ -1,10 +1,11 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import { Provider, useSelector } from 'react-redux';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { Box } from '@mui/material';
 import { store, RootState } from './store';
+import { webSocketService } from './services/websocketService';
 import AuthWrapper from './components/auth/AuthWrapper';
 import Layout from './components/layout/Layout';
 import Dashboard from './pages/Dashboard';
@@ -19,6 +20,23 @@ import SystemStatus from './pages/SystemStatus';
 
 const AppContent: React.FC = () => {
   const darkMode = useSelector((state: RootState) => state.theme.darkMode);
+
+  // Initialize WebSocket connections when app starts
+  useEffect(() => {
+    console.log('Initializing WebSocket connections...');
+    try {
+      webSocketService.connect();
+      console.log('WebSocket connections initialized successfully');
+    } catch (error) {
+      console.error('Failed to initialize WebSocket connections:', error);
+    }
+
+    // Cleanup on unmount
+    return () => {
+      console.log('Cleaning up WebSocket connections...');
+      webSocketService.disconnect();
+    };
+  }, []);
 
   const theme = useMemo(() => 
     createTheme({
