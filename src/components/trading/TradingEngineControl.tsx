@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { RootState } from '../../store';
+import { RootState, store } from '../../store';
 import SimpleTradingEngine, { TradingEngineConfig } from '../../services/simpleTradingEngine';
 import { addNotification } from '../../store/slices/notificationsSlice';
 
@@ -8,7 +8,7 @@ const TradingEngineControl: React.FC = () => {
   const dispatch = useDispatch();
   const { user } = useSelector((state: RootState) => state.auth);
   const [isEngineRunning, setIsEngineRunning] = useState(false);
-  const [engine] = useState(() => new SimpleTradingEngine(require('../../store').store));
+  const [engine] = useState(() => new SimpleTradingEngine(store));
   const [config, setConfig] = useState<TradingEngineConfig>({
     enableAutoTrading: false,
     maxPositionSize: 1000,

@@ -285,11 +285,22 @@ class DatabaseService {
         }
       });
       
-      // In a real app, you'd verify the password hash here
-      if (user) {
+      // Simple password check (in production, use bcrypt)
+      if (user && user.password === password) {
+        // Load user preferences
+        const preferences = await this.prisma.userPreferences.findUnique({
+          where: { userId: user.id }
+        });
+        
         return {
           ...user,
-          preferences: {} // Add empty preferences object
+          preferences: preferences || {
+            theme: 'dark',
+            notifications: true,
+            defaultCapital: 10000,
+            riskTolerance: 'medium',
+            tradingPairs: '[]'
+          }
         };
       }
       return null;

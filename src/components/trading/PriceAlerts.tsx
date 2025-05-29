@@ -338,24 +338,24 @@ const PriceAlerts: React.FC = () => {
                       </Box>
                     }
                     secondary={
-                      <Box>
-                        <Typography variant="body2" color="text.secondary">
+                      <>
+                        <span style={{ display: 'block', color: 'rgba(0, 0, 0, 0.6)' }}>
                           Alert when {alert.condition} {formatPrice(alert.targetPrice)}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
+                        </span>
+                        <span style={{ display: 'block', color: 'rgba(0, 0, 0, 0.6)' }}>
                           Current: {formatPrice(currentPrice)}
-                        </Typography>
+                        </span>
                         {alert.note && (
-                          <Typography variant="caption" color="text.secondary">
+                          <span style={{ display: 'block', fontSize: '0.75rem', color: 'rgba(0, 0, 0, 0.6)' }}>
                             Note: {alert.note}
-                          </Typography>
+                          </span>
                         )}
                         {alert.triggeredAt && (
-                          <Typography variant="caption" color="success.main">
+                          <span style={{ display: 'block', fontSize: '0.75rem', color: '#4caf50' }}>
                             Triggered: {new Date(alert.triggeredAt).toLocaleString()}
-                          </Typography>
+                          </span>
                         )}
-                      </Box>
+                      </>
                     }
                   />
                   <ListItemSecondaryAction>
